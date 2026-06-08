@@ -6,12 +6,14 @@
   <title>Biometrics Daily Logs Sorting System</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="style.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <style>
     body { padding-top: 40px; }
   </style>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('.app-flash-close').forEach(function (button) {
+    window.bindFlashCloseHandlers = function (scope) {
+      var root = scope || document;
+      root.querySelectorAll('.app-flash-close').forEach(function (button) {
         button.addEventListener('click', function () {
           var flash = button.closest('.app-flash');
           if (flash) {
@@ -22,7 +24,28 @@
           }
         });
       });
-    });
+    };
+
+    window.setAppFlash = function (html) {
+      var container = document.getElementById('appFlashContainer');
+      if (!container) {
+        return;
+      }
+      container.innerHTML = html || '';
+      window.bindFlashCloseHandlers(container);
+    };
+
+    window.buildAppFlash = function (type, title, message) {
+      return '<div class="app-flash app-flash-' + type + '" role="status">'
+        + '<strong>' + title + '</strong>'
+        + '<span>' + message.replace(/\n/g, '<br>') + '</span>'
+        + '<button type="button" class="app-flash-close" aria-label="Dismiss">&times;</button>'
+        + '</div>';
+    };
+
+    window.handleAjaxFailure = function (message) {
+      window.setAppFlash(window.buildAppFlash('danger', 'Request failed', message));
+    };
 
     window.lockPageScroll = function () {
       var scrollY = window.scrollY || window.pageYOffset || 0;
@@ -38,6 +61,10 @@
       delete document.body.dataset.scrollY;
       window.scrollTo(0, scrollY);
     };
+
+    document.addEventListener('DOMContentLoaded', function () {
+      window.bindFlashCloseHandlers(document);
+    });
   </script>
 </head>
 <body>
@@ -66,3 +93,4 @@
   <img src="image/gvs.png" style="width: 100px;">
 </nav>
 <div class="container">
+  <div id="appFlashContainer"><?php echo app_consume_flash(); ?></div>

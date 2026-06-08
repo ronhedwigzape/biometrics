@@ -2,14 +2,6 @@
 // export.php
 include 'db.php';
 
-function flashMessage($type, $title, $message) {
-    $_SESSION['message'] = '<div class="app-flash app-flash-' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '" role="status">'
-        . '<strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</strong>'
-        . '<span>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8')) . '</span>'
-        . '<button type="button" class="app-flash-close" aria-label="Dismiss">&times;</button>'
-        . '</div>';
-}
-
 function xmlEscape($value) {
     return htmlspecialchars((string) $value, ENT_XML1 | ENT_COMPAT, 'UTF-8');
 }
@@ -84,7 +76,14 @@ function buildWorksheetXml($rows, $columnWidths) {
 
 function streamXlsx($filename, $rows) {
     if(!class_exists('ZipArchive')) {
-        flashMessage('danger', 'Export failed', 'The PHP ZipArchive extension is required to create XLSX files.');
+        if(app_is_ajax_request()) {
+            app_json_response([
+                'ok' => false,
+                'flash_html' => app_flash_html('danger', 'Export failed', 'The PHP ZipArchive extension is required to create XLSX files.'),
+                'message' => 'The PHP ZipArchive extension is required to create XLSX files.'
+            ], 500);
+        }
+        app_set_flash('danger', 'Export failed', 'The PHP ZipArchive extension is required to create XLSX files.');
         header('Location: export.php');
         exit();
     }
@@ -104,7 +103,14 @@ function streamXlsx($filename, $rows) {
     $tmpFile = tempnam(sys_get_temp_dir(), 'xlsx_');
     $zip = new ZipArchive();
     if($zip->open($tmpFile, ZipArchive::OVERWRITE) !== true) {
-        flashMessage('danger', 'Export failed', 'Unable to create the temporary XLSX file.');
+        if(app_is_ajax_request()) {
+            app_json_response([
+                'ok' => false,
+                'flash_html' => app_flash_html('danger', 'Export failed', 'Unable to create the temporary XLSX file.'),
+                'message' => 'Unable to create the temporary XLSX file.'
+            ], 500);
+        }
+        app_set_flash('danger', 'Export failed', 'Unable to create the temporary XLSX file.');
         header('Location: export.php');
         exit();
     }
@@ -184,7 +190,14 @@ function buildExportQuery($mysqli, &$filename) {
 
     if($filterType === 'employee') {
         if(empty($_POST['employee_id'])) {
-            flashMessage('danger', 'Missing employee ID', 'Please enter an Employee ID before exporting.');
+            if(app_is_ajax_request()) {
+                app_json_response([
+                    'ok' => false,
+                    'flash_html' => app_flash_html('danger', 'Missing employee ID', 'Please enter an Employee ID before exporting.'),
+                    'message' => 'Please enter an Employee ID before exporting.'
+                ], 422);
+            }
+            app_set_flash('danger', 'Missing employee ID', 'Please enter an Employee ID before exporting.');
             header('Location: export.php');
             exit();
         }
@@ -199,7 +212,14 @@ function buildExportQuery($mysqli, &$filename) {
 
     if($filterType === 'monthly') {
         if(empty($_POST['month'])) {
-            flashMessage('danger', 'Missing month', 'Please select a month before exporting.');
+            if(app_is_ajax_request()) {
+                app_json_response([
+                    'ok' => false,
+                    'flash_html' => app_flash_html('danger', 'Missing month', 'Please select a month before exporting.'),
+                    'message' => 'Please select a month before exporting.'
+                ], 422);
+            }
+            app_set_flash('danger', 'Missing month', 'Please select a month before exporting.');
             header('Location: export.php');
             exit();
         }
@@ -217,7 +237,14 @@ function buildExportQuery($mysqli, &$filename) {
 
     if($filterType === 'range') {
         if(empty($_POST['from_date']) || empty($_POST['to_date'])) {
-            flashMessage('danger', 'Missing date range', 'Please select both From and To dates before exporting.');
+            if(app_is_ajax_request()) {
+                app_json_response([
+                    'ok' => false,
+                    'flash_html' => app_flash_html('danger', 'Missing date range', 'Please select both From and To dates before exporting.'),
+                    'message' => 'Please select both From and To dates before exporting.'
+                ], 422);
+            }
+            app_set_flash('danger', 'Missing date range', 'Please select both From and To dates before exporting.');
             header('Location: export.php');
             exit();
         }
@@ -231,7 +258,14 @@ function buildExportQuery($mysqli, &$filename) {
                 ORDER BY b.employee_id, b.log_date";
     }
 
-    flashMessage('danger', 'Missing export filter', 'Please select an export filter.');
+    if(app_is_ajax_request()) {
+        app_json_response([
+            'ok' => false,
+            'flash_html' => app_flash_html('danger', 'Missing export filter', 'Please select an export filter.'),
+            'message' => 'Please select an export filter.'
+        ], 422);
+    }
+    app_set_flash('danger', 'Missing export filter', 'Please select an export filter.');
     header('Location: export.php');
     exit();
 }
@@ -242,7 +276,14 @@ if(isset($_POST['export'])) {
     $result = $mysqli->query($query);
 
     if(!$result || $result->num_rows === 0) {
-        flashMessage('warning', 'No records found', 'No attendance records matched the selected export filter.');
+        if(app_is_ajax_request()) {
+            app_json_response([
+                'ok' => false,
+                'flash_html' => app_flash_html('warning', 'No records found', 'No attendance records matched the selected export filter.'),
+                'message' => 'No attendance records matched the selected export filter.'
+            ], 404);
+        }
+        app_set_flash('warning', 'No records found', 'No attendance records matched the selected export filter.');
         header('Location: export.php');
         exit();
     }
@@ -273,13 +314,6 @@ if(isset($_POST['export'])) {
 include 'header.php';
 ?>
 
-<?php
-if(isset($_SESSION['message'])) {
-    echo $_SESSION['message'];
-    unset($_SESSION['message']);
-}
-?>
-
 <section class="app-panel export-panel">
     <div class="section-heading">
         <div>
@@ -288,7 +322,7 @@ if(isset($_SESSION['message'])) {
         </div>
     </div>
 
-    <form method="post" action="export.php" class="app-form">
+    <form method="post" action="export.php" class="app-form" id="exportForm">
         <div class="form-group">
             <label for="filter">Export Filter</label>
             <select name="filter" id="filter" class="form-control" required>
@@ -332,22 +366,90 @@ if(isset($_SESSION['message'])) {
 </section>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    var filter = document.getElementById('filter');
+$(function () {
+    var $filter = $('#filter');
     var panels = {
-        employee: document.getElementById('employeeFilter'),
-        monthly: document.getElementById('monthFilter'),
-        range: document.getElementById('dateRange')
+        employee: $('#employeeFilter'),
+        monthly: $('#monthFilter'),
+        range: $('#dateRange')
     };
 
     function toggleFilters() {
-        Object.keys(panels).forEach(function (key) {
-            panels[key].classList.toggle('is-visible', filter.value === key);
+        $.each(panels, function (key, $panel) {
+            $panel.toggleClass('is-visible', $filter.val() === key);
         });
     }
 
-    filter.addEventListener('change', toggleFilters);
+    $filter.on('change', toggleFilters);
     toggleFilters();
+
+    $('#exportForm').on('submit', function (event) {
+        event.preventDefault();
+
+        var form = this;
+        var $button = $(form).find('button[type="submit"]');
+
+        $button.prop('disabled', true).text('Preparing...');
+
+        $.ajax({
+            url: 'export.php',
+            method: 'POST',
+            data: $(form).serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            xhr: function () {
+                var xhr = new window.XMLHttpRequest();
+                xhr.responseType = 'blob';
+                return xhr;
+            }
+        }).done(function (data, textStatus, xhr) {
+            var disposition = xhr.getResponseHeader('Content-Disposition') || '';
+            var fileName = 'attendance-report.xlsx';
+            var match = disposition.match(/filename="?([^"]+)"?/i);
+
+            if (match && match[1]) {
+                fileName = match[1];
+            }
+
+            var blob = new Blob([data], {
+                type: xhr.getResponseHeader('Content-Type') || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            var url = window.URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            window.setAppFlash(window.buildAppFlash('success', 'Export ready', 'The XLSX file has been downloaded.'));
+        }).fail(function (xhr) {
+            if (xhr.responseJSON && xhr.responseJSON.flash_html) {
+                window.setAppFlash(xhr.responseJSON.flash_html);
+                return;
+            }
+
+            if (xhr.response && xhr.response.type === 'application/json') {
+                var reader = new FileReader();
+                reader.onload = function () {
+                    try {
+                        var payload = JSON.parse(reader.result);
+                        window.setAppFlash(payload.flash_html || window.buildAppFlash('danger', 'Export failed', payload.message || 'Export failed.'));
+                    } catch (error) {
+                        window.handleAjaxFailure('Export failed. Please try again.');
+                    }
+                };
+                reader.readAsText(xhr.response);
+                return;
+            }
+
+            window.handleAjaxFailure('Export failed. Please try again.');
+        }).always(function () {
+            $button.prop('disabled', false).text('Export XLSX');
+        });
+    });
 });
 </script>
 

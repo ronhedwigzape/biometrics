@@ -2,14 +2,6 @@
 // import.php
 include 'db.php';
 
-function flashMessage($type, $title, $message) {
-    $_SESSION['message'] = '<div class="app-flash app-flash-' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '" role="status">'
-        . '<strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</strong>'
-        . '<span>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8')) . '</span>'
-        . '<button type="button" class="app-flash-close" aria-label="Dismiss">&times;</button>'
-        . '</div>';
-}
-
 function parseBiometricTimestamp($rawDateTime) {
     $rawDateTime = trim($rawDateTime);
 
@@ -27,7 +19,7 @@ function parseBiometricTimestamp($rawDateTime) {
     return null;
 }
 
-if(isset($_POST['submit'])){
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['datafile'])){
     $totalInserted = 0;
     $totalSkipped = 0;
     $fileCount = 0;
@@ -174,19 +166,25 @@ if(isset($_POST['submit'])){
     }
 
     $messageType = $totalInserted > 0 ? 'success' : 'warning';
-    flashMessage($messageType, 'Import summary', $message);
+    $flashHtml = app_flash_html($messageType, 'Import summary', $message);
+
+    if(app_is_ajax_request()) {
+        app_json_response([
+            'ok' => $totalInserted > 0 || $totalSkipped > 0,
+            'flash_html' => $flashHtml,
+            'redirect_url' => $redirectUrl,
+            'view_label' => ($redirectMinDate !== null && $redirectMaxDate !== null)
+                ? 'View imported records'
+                : '',
+        ]);
+    }
+
+    app_set_flash($messageType, 'Import summary', $message);
     header("Location: $redirectUrl");
     exit();
 }
 
 include 'header.php';
-?>
-
-<?php
-if(isset($_SESSION['message'])) {
-    echo $_SESSION['message'];
-    unset($_SESSION['message']);
-}
 ?>
 
 <section class="app-panel import-panel">
@@ -197,14 +195,63 @@ if(isset($_SESSION['message'])) {
         </div>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="app-form">
+    <form method="post" enctype="multipart/form-data" class="app-form" id="importForm">
         <div class="form-group">
             <label for="datafile">Select DAT or TXT File</label>
             <input type="file" name="datafile[]" id="datafile" class="form-control-file" accept=".dat,.txt" required multiple>
         </div>
         <button type="submit" name="submit" class="btn btn-primary btn-action">Import Files</button>
     </form>
+    <div id="importResultActions" class="mt-3"></div>
 </section>
+
+<script>
+$(function () {
+    $('#importForm').on('submit', function (event) {
+        event.preventDefault();
+
+        var form = this;
+        var $form = $(form);
+        var $button = $form.find('button[type="submit"]');
+        var formData = new FormData(form);
+        formData.append('submit', '1');
+
+        $button.prop('disabled', true).text('Importing...');
+        $('#importResultActions').empty();
+
+        $.ajax({
+            url: 'import.php',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        }).done(function (response) {
+            window.setAppFlash(response.flash_html || '');
+            form.reset();
+
+            if (response.redirect_url) {
+                $('#importResultActions').html(
+                    '<a class="btn btn-outline-primary btn-sm" href="' + response.redirect_url + '">'
+                    + (response.view_label || 'View records')
+                    + '</a>'
+                );
+            }
+        }).fail(function (xhr) {
+            var message = 'Import failed. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+            window.handleAjaxFailure(message);
+        }).always(function () {
+            $button.prop('disabled', false).text('Import Files');
+        });
+    });
+});
+</script>
 
 <footer style="margin-top: auto; text-align: center; padding: 20px;">
     <?php include 'footer.php'; ?>
