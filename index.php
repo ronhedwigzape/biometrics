@@ -72,8 +72,8 @@ if(isset($_POST['delete_records'])) {
     exit();
 }
 
-// Set default sorting order
-$order = isset($_GET['order']) && $_GET['order'] === 'desc' ? 'DESC' : 'ASC';
+// Show the newest log dates first unless the user explicitly asks otherwise.
+$order = (isset($_GET['order']) && $_GET['order'] === 'asc') ? 'ASC' : 'DESC';
 $new_order = $order === 'ASC' ? 'desc' : 'asc';
 
 // Get search parameters
@@ -108,7 +108,7 @@ $total_records = $total_records_result->num_rows;
 $total_pages = ceil($total_records / $records_per_page);
 
 // Add sorting and pagination to main query
-$query .= " ORDER BY b.log_date $order LIMIT $offset, $records_per_page";
+$query .= " ORDER BY b.log_date $order, b.employee_id ASC LIMIT $offset, $records_per_page";
 
 // Fetch filtered records
 $result = $mysqli->query($query);
