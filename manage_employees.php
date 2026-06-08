@@ -1,11 +1,14 @@
 <?php
 include 'db.php';
-include 'header.php';
-?>
-<!-- Make sure Bootstrap JS is included -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<?php
+function flashMessage($type, $title, $message) {
+    $_SESSION['message'] = '<div class="app-flash app-flash-' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '" role="status">'
+        . '<strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</strong>'
+        . '<span>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8')) . '</span>'
+        . '<button type="button" class="app-flash-close" aria-label="Dismiss">&times;</button>'
+        . '</div>';
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
@@ -16,9 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $sql = "INSERT INTO employees (employee_id, employee_name) VALUES ('$employee_id', '$employee_name')";
                 if ($mysqli->query($sql)) {
-                    $_SESSION['message'] = "<div class='alert alert-success'>Employee assigned successfully.</div>";
+                    flashMessage('success', 'Employee assigned', 'Employee assigned successfully.');
                 } else {
-                    $_SESSION['message'] = "<div class='alert alert-danger'>Error assigning employee.</div>";
+                    flashMessage('danger', 'Assign failed', 'Error assigning employee.');
                 }
                 break;
 
@@ -28,9 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $sql = "UPDATE employees SET employee_name = '$employee_name' WHERE employee_id = '$employee_id'";
                 if ($mysqli->query($sql)) {
-                    $_SESSION['message'] = "<div class='alert alert-success'>Employee updated successfully.</div>";
+                    flashMessage('success', 'Employee updated', 'Employee updated successfully.');
                 } else {
-                    $_SESSION['message'] = "<div class='alert alert-danger'>Error updating employee.</div>";
+                    flashMessage('danger', 'Update failed', 'Error updating employee.');
                 }
                 break;
 
@@ -39,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $sql = "DELETE FROM employees WHERE employee_id = '$employee_id'";
                 if ($mysqli->query($sql)) {
-                    $_SESSION['message'] = "<div class='alert alert-success'>Employee unassigned successfully.</div>";
+                    flashMessage('success', 'Employee unassigned', 'Employee unassigned successfully.');
                 } else {
-                    $_SESSION['message'] = "<div class='alert alert-danger'>Error unassigning employee.</div>";
+                    flashMessage('danger', 'Unassign failed', 'Error unassigning employee.');
                 }
                 break;
         }
@@ -53,9 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch all employees
 $query = "SELECT * FROM employees ORDER BY employee_name";
 $result = $mysqli->query($query);
+
+include 'header.php';
 ?>
 
-<div class="container mt-4">
+<section class="app-panel employee-panel">
     <?php
     if(isset($_SESSION['message'])) {
         echo $_SESSION['message'];
@@ -63,11 +68,14 @@ $result = $mysqli->query($query);
     }
     ?>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Manage Employees</h2>
+    <div class="section-heading">
         <div>
-            <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#assignEmployeeForm">
-                <i class="fas fa-plus"></i> Add New Employee
+            <span class="section-kicker">Employee Directory</span>
+            <h2>Manage Employees</h2>
+        </div>
+        <div>
+            <button class="btn btn-primary btn-action" type="button" id="toggleAssignForm">
+                Add New Employee
             </button>
             <a href="index.php" class="btn btn-secondary">Back to Logs</a>
         </div>
@@ -78,7 +86,7 @@ $result = $mysqli->query($query);
         <div class="card">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">Assign New Employee</h4>
-                <button type="button" class="btn-close btn-close-white" aria-label="Close" id="closeAssignForm"></button>
+                <button type="button" class="app-card-close" aria-label="Close" id="closeAssignForm">&times;</button>
             </div>
             <div class="card-body">
                 <form method="post" class="row g-3">
@@ -136,14 +144,12 @@ $result = $mysqli->query($query);
                                     <a href="index.php?search_employee=<?php echo urlencode($row['employee_id']); ?>" 
                                        class="btn btn-info btn-sm">View Records</a>
                                     <button class="btn btn-warning btn-sm edit-btn">Edit</button>
-                                    <form method="post" class="d-inline">
-                                        <input type="hidden" name="action" value="unassign">
-                                        <input type="hidden" name="employee_id" value="<?php echo htmlspecialchars($row['employee_id']); ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm" 
-                                                onclick="return confirm('Are you sure you want to unassign this employee?')">
-                                            Unassign
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-danger btn-sm unassign-btn"
+                                            data-employee-id="<?php echo htmlspecialchars($row['employee_id'], ENT_QUOTES, 'UTF-8'); ?>"
+                                            data-employee-name="<?php echo htmlspecialchars($row['employee_name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        Unassign
+                                    </button>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
@@ -152,32 +158,45 @@ $result = $mysqli->query($query);
             </div>
         </div>
     </div>
+</section>
+
+<div class="app-modal" id="unassignModal" aria-hidden="true">
+    <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="unassignModalTitle">
+        <div class="app-modal-header">
+            <div>
+                <span class="section-kicker">Employee Assignment</span>
+                <h3 id="unassignModalTitle">Confirm Unassign</h3>
+            </div>
+            <button type="button" class="app-modal-close" data-modal-close aria-label="Close">&times;</button>
+        </div>
+        <p id="unassignModalText" class="mb-3"></p>
+        <div class="app-modal-warning">
+            The employee assignment will be removed. Attendance logs will remain in the system.
+        </div>
+        <form method="post" class="app-form">
+            <input type="hidden" name="action" value="unassign">
+            <input type="hidden" name="employee_id" id="unassignEmployeeId">
+            <div class="app-modal-actions">
+                <button type="button" class="btn btn-light" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-danger">Confirm Unassign</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize collapse functionality for the assign form
-    const addButton = document.querySelector('[data-bs-toggle="collapse"]');
+    const addButton = document.getElementById('toggleAssignForm');
     const assignForm = document.getElementById('assignEmployeeForm');
     const closeButton = document.getElementById('closeAssignForm');
-    let bsCollapse;
     
     if (addButton && assignForm) {
-        bsCollapse = new bootstrap.Collapse(assignForm, {
-            toggle: false
-        });
-        
         addButton.addEventListener('click', function() {
-            if (assignForm.classList.contains('show')) {
-                bsCollapse.hide();
-            } else {
-                bsCollapse.show();
-            }
+            assignForm.classList.toggle('show');
         });
 
-        // Add close button functionality
         closeButton.addEventListener('click', function() {
-            bsCollapse.hide();
+            assignForm.classList.remove('show');
         });
     }
 
@@ -199,12 +218,49 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Auto-show form if there was an error (message contains 'Error')
-    if (document.querySelector('.alert-danger')) {
-        if (assignForm && bsCollapse) {
-            bsCollapse.show();
-        }
+    if (document.querySelector('.app-flash-danger') && assignForm) {
+        assignForm.classList.add('show');
     }
+
+    const unassignModal = document.getElementById('unassignModal');
+    const unassignEmployeeId = document.getElementById('unassignEmployeeId');
+    const unassignModalText = document.getElementById('unassignModalText');
+
+    function showUnassignModal(employeeId, employeeName) {
+        unassignEmployeeId.value = employeeId;
+        unassignModalText.textContent = 'Unassign ' + employeeName + ' (ID: ' + employeeId + ')?';
+        unassignModal.classList.add('is-open');
+        unassignModal.setAttribute('aria-hidden', 'false');
+        window.lockPageScroll();
+    }
+
+    function hideUnassignModal() {
+        unassignModal.classList.remove('is-open');
+        unassignModal.setAttribute('aria-hidden', 'true');
+        window.unlockPageScroll();
+    }
+
+    document.querySelectorAll('.unassign-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            showUnassignModal(this.dataset.employeeId, this.dataset.employeeName);
+        });
+    });
+
+    document.querySelectorAll('[data-modal-close]').forEach(button => {
+        button.addEventListener('click', hideUnassignModal);
+    });
+
+    unassignModal.addEventListener('click', function(event) {
+        if(event.target === unassignModal) {
+            hideUnassignModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if(event.key === 'Escape' && unassignModal.classList.contains('is-open')) {
+            hideUnassignModal();
+        }
+    });
 });
 </script>
 
@@ -228,14 +284,16 @@ document.addEventListener('DOMContentLoaded', function() {
 .collapse.show {
     display: block;
 }
-.btn-close-white {
+.app-card-close {
     cursor: pointer;
-}
-.btn-close:focus {
-    box-shadow: none;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font-size: 1.4rem;
+    line-height: 1;
 }
 </style>
 
-<div style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center;">
+<footer style="margin-top: auto; text-align: center; padding: 20px;">
     <?php include 'footer.php'; ?>
-</div>
+</footer>

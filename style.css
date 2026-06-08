@@ -174,3 +174,350 @@ form.mb-4 {
         white-space: nowrap;
     }
 }
+
+html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+}
+
+body {
+    min-height: 100vh;
+    background: #f5f7fb;
+    color: #1f2933;
+    overflow-y: scroll;
+}
+
+body,
+.app-modal-dialog,
+.table-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: #9fb3c8 #e8eef5;
+}
+
+body::-webkit-scrollbar,
+.app-modal-dialog::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+body::-webkit-scrollbar-track,
+.app-modal-dialog::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track {
+    background: #e8eef5;
+    border-radius: 999px;
+}
+
+body::-webkit-scrollbar-thumb,
+.app-modal-dialog::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #9fb3c8 0%, #7b92aa 100%);
+    border: 2px solid #e8eef5;
+    border-radius: 999px;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+.app-modal-dialog::-webkit-scrollbar-thumb:hover,
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #7b92aa 0%, #627d98 100%);
+}
+
+.navbar {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.container {
+    animation: appFadeUp 260ms ease-out both;
+}
+
+.app-panel {
+    max-width: 860px;
+    margin: 24px auto 32px;
+    padding: 28px;
+    background: #ffffff;
+    border: 1px solid #d9e2ec;
+    border-radius: 8px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    animation: appFadeUp 280ms ease-out both;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid #e6edf5;
+}
+
+.section-heading h2,
+.app-modal-header h3 {
+    margin: 0;
+    color: #102a43;
+    font-size: 1.45rem;
+    font-weight: 700;
+}
+
+.section-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: #627d98;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.app-form label {
+    color: #334e68;
+    font-weight: 600;
+}
+
+.form-control,
+.form-control-file {
+    border-color: #cbd5e1;
+    border-radius: 8px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.form-control:focus {
+    border-color: #1864ab;
+    box-shadow: 0 0 0 0.2rem rgba(24, 100, 171, 0.14);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.filter-panel {
+    display: none;
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.filter-panel.is-visible {
+    display: block;
+    animation: filterIn 180ms ease-out both;
+}
+
+.app-flash {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    max-width: 980px;
+    margin: 0 auto 18px;
+    padding: 14px 48px 14px 16px;
+    border: 1px solid transparent;
+    border-left-width: 5px;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
+    animation: appFadeUp 240ms ease-out both;
+}
+
+.app-flash strong {
+    color: #102a43;
+    white-space: nowrap;
+}
+
+.app-flash span {
+    color: #334e68;
+}
+
+.app-flash-success {
+    border-color: #2f9e44;
+    background: #f2fbf4;
+}
+
+.app-flash-warning {
+    border-color: #f08c00;
+    background: #fff8e8;
+}
+
+.app-flash-danger {
+    border-color: #c92a2a;
+    background: #fff5f5;
+}
+
+.app-flash-close,
+.app-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    border: 0;
+    background: transparent;
+    color: #627d98;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.app-flash.is-hiding {
+    animation: appFadeOut 180ms ease-in both;
+}
+
+.table {
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+}
+
+.table tbody tr {
+    transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.table tbody tr:hover {
+    background: #f0f7ff;
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 3px;
+    color: #1864ab;
+}
+
+.pagination .active .page-link {
+    background-color: #1864ab;
+    border-color: #1864ab;
+}
+
+.app-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.46);
+    opacity: 0;
+    pointer-events: none;
+    overflow-y: auto;
+    transition: opacity 180ms ease;
+}
+
+.app-modal.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.app-modal-dialog {
+    position: relative;
+    width: min(560px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.26);
+    transform: translateY(12px) scale(0.98);
+    transition: transform 180ms ease;
+}
+
+.app-modal.is-open .app-modal-dialog {
+    transform: translateY(0) scale(1);
+}
+
+.app-modal-header {
+    position: relative;
+    padding-right: 36px;
+    margin-bottom: 18px;
+}
+
+.app-modal-warning {
+    padding: 12px 14px;
+    margin: 8px 0 18px;
+    color: #7c2d12;
+    background: #fff4e6;
+    border: 1px solid #ffd8a8;
+    border-radius: 8px;
+    font-size: 0.94rem;
+}
+
+.app-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.app-modal-open {
+    position: fixed;
+    top: var(--app-scroll-top, 0);
+    left: 0;
+    right: 0;
+    width: 100%;
+    overflow-y: scroll;
+}
+
+@keyframes appFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes appFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+@keyframes filterIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .app-panel {
+        margin-top: 16px;
+        padding: 20px;
+    }
+
+    .app-flash {
+        flex-direction: column;
+        margin: 0 0 16px;
+        padding-right: 42px;
+    }
+
+    .app-flash strong {
+        white-space: normal;
+    }
+
+    .app-modal {
+        align-items: flex-end;
+        padding: 12px;
+    }
+
+    .app-modal-dialog {
+        max-height: calc(100vh - 24px);
+    }
+}

@@ -1,7 +1,14 @@
 <?php
 // import.php
 include 'db.php';
-include 'header.php';
+
+function flashMessage($type, $title, $message) {
+    $_SESSION['message'] = '<div class="app-flash app-flash-' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '" role="status">'
+        . '<strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</strong>'
+        . '<span>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8')) . '</span>'
+        . '<button type="button" class="app-flash-close" aria-label="Dismiss">&times;</button>'
+        . '</div>';
+}
 
 function parseBiometricTimestamp($rawDateTime) {
     $rawDateTime = trim($rawDateTime);
@@ -166,30 +173,39 @@ if(isset($_POST['submit'])){
         $redirectUrl .= '&search_from_date=' . urlencode($redirectMinDate) . '&search_to_date=' . urlencode($redirectMaxDate);
     }
 
-    echo "<script>
-        alert(`$message`);
-        window.location.href = '$redirectUrl';
-    </script>";
+    $messageType = $totalInserted > 0 ? 'success' : 'warning';
+    flashMessage($messageType, 'Import summary', $message);
+    header("Location: $redirectUrl");
     exit();
+}
+
+include 'header.php';
+?>
+
+<?php
+if(isset($_SESSION['message'])) {
+    echo $_SESSION['message'];
+    unset($_SESSION['message']);
 }
 ?>
 
-<div class="container" style="max-width: 800px; margin: 80px auto; text-align: justify;">
-    <div style="border: 2px solid #1864ab; padding: 20px; border-radius: 8px;">
-        <h2 class="text-center">Import Biometrics Data (.dat file)</h2>
-
-        <form method="post" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="datafile">Select .dat file(s):</label>
-                <input type="file" name="datafile[]" id="datafile" class="form-control-file" accept=".dat,.txt" required multiple>
-            </div>
-            <div style="text-align: left;">
-                <button type="submit" name="submit" class="btn btn-primary">Import Files</button>
-            </div>
-        </form>
+<section class="app-panel import-panel">
+    <div class="section-heading">
+        <div>
+            <span class="section-kicker">Data Import</span>
+            <h2>Import Biometrics Data</h2>
+        </div>
     </div>
-</div>
 
-<div style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center;">
+    <form method="post" enctype="multipart/form-data" class="app-form">
+        <div class="form-group">
+            <label for="datafile">Select DAT or TXT File</label>
+            <input type="file" name="datafile[]" id="datafile" class="form-control-file" accept=".dat,.txt" required multiple>
+        </div>
+        <button type="submit" name="submit" class="btn btn-primary btn-action">Import Files</button>
+    </form>
+</section>
+
+<footer style="margin-top: auto; text-align: center; padding: 20px;">
     <?php include 'footer.php'; ?>
-</div>
+</footer>

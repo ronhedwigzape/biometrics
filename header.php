@@ -9,6 +9,36 @@
   <style>
     body { padding-top: 40px; }
   </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.app-flash-close').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var flash = button.closest('.app-flash');
+          if (flash) {
+            flash.classList.add('is-hiding');
+            window.setTimeout(function () {
+              flash.remove();
+            }, 180);
+          }
+        });
+      });
+    });
+
+    window.lockPageScroll = function () {
+      var scrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.dataset.scrollY = String(scrollY);
+      document.body.style.setProperty('--app-scroll-top', '-' + scrollY + 'px');
+      document.body.classList.add('app-modal-open');
+    };
+
+    window.unlockPageScroll = function () {
+      var scrollY = parseInt(document.body.dataset.scrollY || '0', 10);
+      document.body.classList.remove('app-modal-open');
+      document.body.style.removeProperty('--app-scroll-top');
+      delete document.body.dataset.scrollY;
+      window.scrollTo(0, scrollY);
+    };
+  </script>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: #1864ab;">
