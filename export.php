@@ -39,6 +39,24 @@ function renderedHours($timeIn, $timeOut) {
     return sprintf('%02d:%02d', $hours, $minutes);
 }
 
+function buildDateRangeFilename($fromDate, $toDate) {
+    $fromTimestamp = strtotime((string) $fromDate);
+    $toTimestamp = strtotime((string) $toDate);
+
+    if($fromTimestamp === false || $toTimestamp === false) {
+        return 'Attendance_Report_' . date('Ymd_His');
+    }
+
+    $from = date('Ymd', $fromTimestamp);
+    $to = date('Ymd', $toTimestamp);
+
+    if($from === $to) {
+        return 'Attendance_Report_' . $from;
+    }
+
+    return 'Attendance_Report_' . $from . '_to_' . $to;
+}
+
 function buildWorksheetXml($rows, $columnWidths) {
     $cols = '<cols>';
     foreach($columnWidths as $index => $width) {
@@ -163,7 +181,7 @@ function streamXlsx($filename, $rows) {
     $zip->addFromString('xl/worksheets/sheet1.xml', buildWorksheetXml($rows, $columnWidths));
     $zip->close();
 
-    if(ob_get_level()) {
+    while(ob_get_level() > 0) {
         ob_end_clean();
     }
 
@@ -176,12 +194,10 @@ function streamXlsx($filename, $rows) {
     exit();
 }
 
-function buildExportQuery($mysqli, &$filename) {
+function buildExportQuery($mysqli) {
     $filterType = $_POST['filter'] ?? '';
-    $timestamp = date('Ymd_His');
 
     if($filterType === 'all') {
-        $filename = 'Complete_Attendance_Report_' . $timestamp;
         return "SELECT b.*, e.employee_name
                 FROM biometrics_logs b
                 LEFT JOIN employees e ON b.employee_id = e.employee_id
@@ -202,7 +218,6 @@ function buildExportQuery($mysqli, &$filename) {
             exit();
         }
         $employee_id = $mysqli->real_escape_string(trim($_POST['employee_id']));
-        $filename = 'Attendance_Report_EmpID' . preg_replace('/[^A-Za-z0-9_-]/', '', $employee_id) . '_' . $timestamp;
         return "SELECT b.*, e.employee_name
                 FROM biometrics_logs b
                 LEFT JOIN employees e ON b.employee_id = e.employee_id
@@ -227,7 +242,6 @@ function buildExportQuery($mysqli, &$filename) {
         $yearMonth = explode('-', $monthValue);
         $year = $yearMonth[0] ?? '';
         $month = $yearMonth[1] ?? '';
-        $filename = 'Monthly_Attendance_Report_' . date('Y_F', strtotime($year . '-' . $month . '-01')) . '_' . $timestamp;
         return "SELECT b.*, e.employee_name
                 FROM biometrics_logs b
                 LEFT JOIN employees e ON b.employee_id = e.employee_id
@@ -250,7 +264,6 @@ function buildExportQuery($mysqli, &$filename) {
         }
         $from = $mysqli->real_escape_string($_POST['from_date']);
         $to = $mysqli->real_escape_string($_POST['to_date']);
-        $filename = 'Attendance_Report_' . date('Ymd', strtotime($from)) . '_to_' . date('Ymd', strtotime($to)) . '_' . $timestamp;
         return "SELECT b.*, e.employee_name
                 FROM biometrics_logs b
                 LEFT JOIN employees e ON b.employee_id = e.employee_id
@@ -270,9 +283,8 @@ function buildExportQuery($mysqli, &$filename) {
     exit();
 }
 
-if(isset($_POST['export'])) {
-    $filename = 'Attendance_Report_' . date('Ymd_His');
-    $query = buildExportQuery($mysqli, $filename);
+if($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['export']) || isset($_POST['filter']))) {
+    $query = buildExportQuery($mysqli);
     $result = $mysqli->query($query);
 
     if(!$result || $result->num_rows === 0) {
@@ -291,16 +303,27 @@ if(isset($_POST['export'])) {
     $rows = [
         ['Employee ID', 'Employee Name', 'Date', 'Day', 'Time In', 'Time Out', 'Rendered Hours']
     ];
+    $minLogDate = null;
+    $maxLogDate = null;
 
     while($row = $result->fetch_assoc()) {
         $timeIn = strtotime($row['time_in']);
         $timeOut = strtotime($row['time_out']);
         $employeeName = !empty($row['employee_name']) ? ucwords(strtolower($row['employee_name'])) : 'N/A';
+        $logDate = date('Y-m-d', strtotime($row['log_date']));
+
+        if($minLogDate === null || $logDate < $minLogDate) {
+            $minLogDate = $logDate;
+        }
+
+        if($maxLogDate === null || $logDate > $maxLogDate) {
+            $maxLogDate = $logDate;
+        }
 
         $rows[] = [
             str_pad((string) $row['employee_id'], 4, '0', STR_PAD_LEFT),
             $employeeName,
-            date('Y-m-d', strtotime($row['log_date'])),
+            $logDate,
             date('l', strtotime($row['log_date'])),
             $timeIn !== false ? date('h:i A', $timeIn) : '',
             $timeOut !== false ? date('h:i A', $timeOut) : '',
@@ -308,6 +331,7 @@ if(isset($_POST['export'])) {
         ];
     }
 
+    $filename = buildDateRangeFilename($minLogDate, $maxLogDate);
     streamXlsx($filename, $rows);
 }
 
@@ -394,7 +418,7 @@ $(function () {
         $.ajax({
             url: 'export.php',
             method: 'POST',
-            data: $(form).serialize(),
+            data: $(form).serialize() + '&export=1',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             },
